@@ -3,7 +3,7 @@ on: [push, pull_request]
 
 jobs:
   build:
-    runs-on: macos-13
+    runs-on: macos-latest
     env:
       THEOS: ${{ github.workspace }}/theos
     steps:
@@ -13,13 +13,10 @@ jobs:
       - name: Setup Theos
         run: |
           git clone --recursive https://github.com/theos/theos.git $THEOS
-          # Κατεβάζουμε μόνο ένα SDK για να είναι γρήγορο και σίγουρο
+          mkdir -p $THEOS/sdks
           curl -L https://github.com/theos/sdks/raw/master/iPhoneOS14.5.sdk.tar.xz -o $THEOS/sdks/sdk.tar.xz
           tar -xf $THEOS/sdks/sdk.tar.xz -C $THEOS/sdks/
           rm $THEOS/sdks/sdk.tar.xz
-
-      - name: Install Dependencies
-        run: brew install ldid
 
       - name: Build DarkDev
         run: |
