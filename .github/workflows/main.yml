@@ -1,16 +1,32 @@
-name: DarkDev Builder
-on: [push]
+name: Build DarkDev Client
+on: [push, pull_request]
+
 jobs:
   build:
     runs-on: macos-latest
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Theos
+        run: |
+          # Κατέβασμα του Theos απευθείας
+          git clone --recursive https://github.com/theos/theos.git ~/theos
+          
+          # Κατέβασμα των SDKs χειροκίνητα για να μην χτυπάει το API Error
+          git clone https://github.com/theos/sdks.git ~/theos/sdks
+          
+          # Ρύθμιση της διαδρομής
+          echo "THEOS=~/theos" >> $GITHUB_ENV
+          
       - name: Build DarkDev
         run: |
-          bash -c "$(curl -fsSL https://raw.githubusercontent.com/theos/theos/master/bin/install-theos)"
           export THEOS=~/theos
+          # Φτιάχνουμε το πακέτο
           make package
-      - uses: actions/upload-artifact@v4
+          
+      - name: Upload DarkDev Artifact
+        uses: actions/upload-artifact@v4
         with:
           name: DarkDev-Dylib
           path: packages/*.deb
