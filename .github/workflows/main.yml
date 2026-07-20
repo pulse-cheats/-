@@ -1,24 +1,16 @@
-name: Build DarkDev
-on: [push, pull_request]
-
+name: DarkDev Builder
+on: [push]
 jobs:
   build:
     runs-on: macos-latest
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Setup Theos
+      - uses: actions/checkout@v4
+      - name: Build DarkDev
         run: |
           bash -c "$(curl -fsSL https://raw.githubusercontent.com/theos/theos/master/bin/install-theos)"
-          
-      - name: Build Package
-        run: |
           export THEOS=~/theos
           make package
-          
-      - name: Upload DarkDev Dylib
-        uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v4
         with:
-          name: DarkDev-Output
+          name: DarkDev-Dylib
           path: packages/*.deb
