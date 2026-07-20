@@ -18,6 +18,11 @@ jobs:
           tar -xf $THEOS/sdks/sdk.tar.xz -C $THEOS/sdks/
           rm $THEOS/sdks/sdk.tar.xz
 
+      - name: Verify Files
+        run: |
+          echo "Listing files in the repository:"
+          ls -R
+
       - name: Build DarkDev
         run: |
           make package
