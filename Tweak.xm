@@ -1,32 +1,35 @@
 #import <UIKit/UIKit.h>
 #import <substrate.h>
 
-// --- DECLARATIONS FOR COMPILER ---
-@interface LocalPlayer : NSObject
-- (void)swing;
-- (int)getHunger;
-- (void)startUsingItem;
-- (void)setMotionY:(float)y;
-- (float)getFallDistance;
-- (float)distanceTo:(void*)entity;
-- (void*)getLevel;
-- (void)attack:(void*)entity;
-@end
+// --- C++ CLASS DECLARATIONS (Για να μην βγάζει Error ο compiler) ---
+class Entity;
+class Player;
+class LocalPlayer;
+class Mob;
 
-@interface Player : NSObject
-- (void)setAbility:(int)idx value:(BOOL)val;
-@end
-
-@interface Mob : NSObject
-- (float)getSpeed;
-@end
+class LocalPlayer {
+public:
+    virtual void tick();
+    void swing();
+    int getHunger();
+    void startUsingItem();
+    void setMotionY(float y);
+    float getFallDistance();
+    float distanceTo(Entity*);
+    void* getLevel();
+    void attack(Entity*);
+};
 
 // --- DARKDEV SETTINGS ---
-struct {
-    bool killaura = false, fly = false, freecam = false;
-    bool esp = false, tracers = false, speed = false;
-    bool autocrystal = false, autoanchor = false, autototem = false;
-    bool criticals = false, autoeat = false;
+struct Settings {
+    bool killaura = false;
+    bool fly = false;
+    bool speed = false;
+    bool esp = false;
+    bool tracers = false;
+    bool autototem = false;
+    bool criticals = false;
+    bool autoeat = false;
 } darkDev;
 
 // --- GUI: DARKDEV MENU ---
@@ -59,10 +62,8 @@ struct {
         [self addTgl:@"ESP" var:&darkDev.esp y:130];
         [self addTgl:@"Tracers" var:&darkDev.tracers y:170];
         [self addTgl:@"Auto Totem" var:&darkDev.autototem y:210];
-        [self addTgl:@"Criticals" var:&darkDev.criticals y:250];
-        [self addTgl:@"Auto Eat" var:&darkDev.autoeat y:290];
         
-        self.scroll.contentSize = CGSizeMake(frame.size.width, 350);
+        self.scroll.contentSize = CGSizeMake(frame.size.width, 300);
     }
     return self;
 }
@@ -70,7 +71,7 @@ struct {
 - (void)addTgl:(NSString *)n var:(bool *)v y:(int)y {
     UILabel *l = [[UILabel alloc] initWithFrame:CGRectMake(10,y,100,30)];
     l.text = n; l.textColor = [UIColor whiteColor]; [self.scroll addSubview:l];
-    UISwitch *s = [[UISwitch alloc] initWithFrame:CGRectMake(140,y,0,0)];
+    UISwitch *s = [[UISwitch alloc] initWithFrame:CGRectMake(self.frame.size.width-60,y,0,0)];
     s.onTintColor = [UIColor redColor];
     [s addTarget:self action:@selector(sw:) forControlEvents:UIControlEventValueChanged];
     objc_setAssociatedObject(s, "p", [NSValue valueWithPointer:v], OBJC_ASSOCIATION_RETAIN_NONATOMIC);
@@ -86,29 +87,19 @@ struct {
 static DarkDevGUI *menu;
 
 // --- THE CHEATS (HOOKS) ---
-%hook LocalPlayer
-- (void)tick {
-    %orig;
-    if (darkDev.killaura) { [self swing]; }
-    if (darkDev.autoeat && [self getHunger] < 16) [self startUsingItem];
-    if (darkDev.criticals && [self getFallDistance] == 0.0f) [self setMotionY:0.12f];
+// Χρησιμοποιούμε MS Hook για C++ μεθόδους
+void (*old_LocalPlayer_tick)(LocalPlayer*);
+void new_LocalPlayer_tick(LocalPlayer* self) {
+    if (darkDev.killaura) { self->swing(); }
+    if (darkDev.criticals && self->getFallDistance() == 0.0f) self->setMotionY(0.12f);
+    old_LocalPlayer_tick(self);
 }
-%end
 
-%hook Player
-- (void)normalTick {
-    %orig;
-    if (darkDev.fly) {
-        // Simple fly logic
-    }
+float (*old_Mob_getSpeed)(Mob*);
+float new_Mob_getSpeed(Mob* self) {
+    float original = old_Mob_getSpeed(self);
+    return darkDev.speed ? original * 2.8f : original;
 }
-%end
-
-%hook Mob
-- (float)getSpeed { 
-    return darkDev.speed ? %orig * 2.8f : %orig; 
-}
-%end
 
 // --- STARTUP ---
 %ctor {
@@ -127,5 +118,10 @@ static DarkDevGUI *menu;
         menu.hidden = YES;
         [win addSubview:menu];
     });
+
+    // Εδώ κάνουμε το "πάντρεμα" με το παιχνίδι
+    // Σημείωση: Τα ονόματα των συμβόλων εξαρτώνται από το binary
+    MSHookFunction(NULL, (void *)&new_LocalPlayer_tick, (void **)&old_LocalPlayer_tick);
 }
+
 void tglM() { if(menu) menu.hidden = !menu.hidden; }
