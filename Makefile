@@ -6,7 +6,7 @@ include $(THEOS)/makefiles/common.mk
 
 TWEAK_NAME = DarkDev
 DarkDev_FILES = Tweak.xm
-DarkDev_CFLAGS = -fobjc-arc
+DarkDev_CFLAGS = -fobjc-arc -std=c++11
 DarkDev_FRAMEWORKS = UIKit Foundation CoreGraphics
 
 include $(THEOS_MAKE_PATH)/tweak.mk
